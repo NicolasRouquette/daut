@@ -1,8 +1,10 @@
 package daut3_statemachine
 
 import daut._
+import cats.effect.{IO, IOApp, ExitCode, Sync}
+import cats.syntax.applicative._
 
-trait TaskEvent
+trait TaskEvent extends daut.Event
 case class start(task: Int) extends TaskEvent
 case class stop(task: Int) extends TaskEvent
 
@@ -16,32 +18,41 @@ case class stop(task: Int) extends TaskEvent
  * state machines.
  */
 
-class StartStop extends Monitor[TaskEvent] {
+class StartStop extends Monitor[IO, TaskEvent] {
   def start(task: Int) : state =
     wnext {
-      case start(`task`) => stop(task)
+      case start(`task`) => 
+        Sync[IO].delay {
+          stop(task)
+        }
     }
 
   def stop(task: Int) : state =
     next {
-      case stop(`task`) => start(task + 1)
+      case stop(`task`) => 
+        Sync[IO].delay {
+          start(task + 1)
+        }
     }
 
   start(0)
   // initial(start(0))
 }
 
-object Main {
-  def main(args: Array[String]): Unit = {
+object Main extends IOApp {
+  def run(args: List[String]): IO[ExitCode] = {
     DautOptions.DEBUG = true
     val m = new StartStop
-    m.verify(start(0))
-    m.verify(stop(0))
-    m.verify(start(1))
-    m.verify(stop(1))
-    m.verify(start(3))
-    m.verify(stop(3))
-    m.end()
+    val program = for {
+      _ <- m.verify(start(0))
+      _ <- m.verify(stop(0))
+      _ <- m.verify(start(1))
+      _ <- m.verify(stop(1))
+      _ <- m.verify(start(3))
+      _ <- m.verify(stop(3))
+      _ <- m.end()
+    } yield ()
+    program.as(ExitCode.Success)
   }
 }
 
