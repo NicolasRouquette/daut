@@ -1,6 +1,8 @@
 package daut4_rules
 
 import daut._
+import cats.effect.{IO, IOApp, ExitCode, Sync}
+import cats.syntax.applicative._ 
 
 /**
  * A task acquiring a lock should eventually release it. At most one task
@@ -10,29 +12,31 @@ import daut._
  * fact (Locked) to record history. This is effectively in part a past time property.
  */
 
-trait LockEvent
+trait LockEvent extends Event
 case class acquire(t: Int, x: Int) extends LockEvent
 case class release(t: Int, x: Int) extends LockEvent
 
-class AcquireRelease extends Monitor[LockEvent] {
-  case class Locked(t: Int, x: Int) extends state {
-    hot {
-      case acquire(_, `x`) => error
-      case release(`t`, `x`) => ok
-    }
-  }
+class AcquireRelease extends Monitor[IO, LockEvent]:
+  case class Locked(t: Int, x: Int) extends state:
+    hot:
+      case acquire(_, `x`) => 
+        Sync[IO].delay(Set(error("acquire in locked state")))
+      case release(`t`, `x`) => 
+        Sync[IO].delay(Set(ok))
 
-  always {
-    case acquire(t, x)                  => Locked(t, x)
-    case release(t, x) if !Locked(t, x) => error
-  }
-}
+  always:
+    case acquire(t, x) => 
+      Sync[IO].pure(Set(Locked(t, x)))
+    case release(t, x) if !Locked(t, x) => 
+      Sync[IO].pure(Set(error("release in unlocked state")))
 
-object Main {
-  def main(args: Array[String]): Unit = {
+
+object Main extends IOApp:
+  def run(args: List[String]): IO[ExitCode] =
     val m = new AcquireRelease
-    m.verify(acquire(1, 10))
-    m.verify(acquire(2, 10))
-  }
-}
+    val program = for
+      _ <- m.verify(acquire(1, 10))
+      _ <- m.verify(acquire(2, 10))
+    yield ()
 
+    program.as(ExitCode.Success)
