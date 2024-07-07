@@ -164,7 +164,7 @@ class Monitor[F[_]: Sync, E <: Event] {
   protected type Transitions = PartialFunction[E, F[Set[state]]]
 
   private def noTransitions(using F: Sync[F]): Transitions = {
-    case _ if false => F.pure(Set.empty[state])
+    case _ if false => Sync[F].pure(Set.empty[state])
   }
 
   private val emptyStateSet: Set[state] = Set()
@@ -441,12 +441,14 @@ class Monitor[F[_]: Sync, E <: Event] {
       for {
         _ <- states.applyEvent(event)
         _ <- invariants.toList.traverse { case (e, inv) => check(inv(()), e).pure[F] }.void
+        _ <- monitors.traverse(_.verify(event)).void
       } yield ()
+    } else {
+      monitors.traverse(_.verify(event)).void
     }
-    monitors.traverse(_.verify(event)).void
     if (monitorAtTop && DautOptions.DEBUG) printStates()
     verifyAfterEvent(event)
-    F.pure(this)
+    Sync[F].pure(this)
   }
 
   def end()(using F: Sync[F]): F[this.type] = {
@@ -472,7 +474,7 @@ class Monitor[F[_]: Sync, E <: Event] {
         println(s"Monitor $monitorName detected $errorCount errors!")
         this
       }
-    } else F.pure(this)
+    } else Sync[F].pure(this)
   }
 
   def apply(event: E)(using F: Sync[F]): F[this.type] = verify(event)
@@ -552,8 +554,8 @@ class Monitor[F[_]: Sync, E <: Event] {
     callBack()
     if (STOP_ON_ERROR) {
       println("\n*** terminating on first error!\n")
-      F.raiseError(MonitorError())
-    } else F.unit
+      Sync[F].raiseError(MonitorError())
+    } else Sync[F].unit
   }
 
   protected def reportError(e: String): F[Unit] = {
