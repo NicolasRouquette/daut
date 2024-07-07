@@ -1,33 +1,36 @@
 package daut1_temporal
 
 import daut._
+import cats.effect.{IO, IOApp, ExitCode, Sync}
+import cats.syntax.applicative._  // Import the extension methods for pure
 
-/**
- * Property AcquireRelease: A task acquiring a lock should eventually release it. At most one task
- * can acquire a lock at a time.
- */
+trait LockEvent extends Event
+case class acquire(t: Int, x: Int) extends LockEvent
+case class release(t: Int, x: Int) extends LockEvent
 
-trait LockEvent
-case class acquire(t:Int, x:Int) extends LockEvent
-case class release(t:Int, x:Int) extends LockEvent
-
-class AcquireRelease extends Monitor[LockEvent] {
+class AcquireRelease extends Monitor[IO, LockEvent] {
   always {
-    case acquire(t, x) =>
-      hot {
-        case acquire(_,`x`) => error
-        case release(`t`,`x`) => ok
+    case acquire(t, x) => 
+      Sync[IO].delay {
+        hot {
+          case acquire(_, `x`) => Set(error("Lock acquired twice")).pure[IO]
+          case release(`t`, `x`) => Set(ok).pure[IO]
+        }
       }
   }
 }
 
-object Main {
-  def main(args: Array[String]): Unit = {
+object Main extends IOApp {
+  def run(args: List[String]): IO[ExitCode] = {
     DautOptions.DEBUG = true
     val m = new AcquireRelease
-    m.verify(acquire(1, 10))
-    m.verify(release(1, 10))
-    m.end()
+
+    val program = for {
+      _ <- m.verify(acquire(1, 10))
+      _ <- m.verify(release(1, 10))
+      _ <- m.end()
+    } yield ()
+
+    program.as(ExitCode.Success)
   }
 }
-
