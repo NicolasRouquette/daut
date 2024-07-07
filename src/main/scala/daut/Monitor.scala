@@ -70,7 +70,6 @@ class Monitor[F[_]: Sync, E <: Event]:
                         transitionTriggered = true
                     
               
-          
           yield ()
         case Some(index) =>
           val ss = indexedStates.getOrElse(index, mainStates)
@@ -231,20 +230,21 @@ class Monitor[F[_]: Sync, E <: Event]:
         isFinal = false
         thisState
 
-    def apply(event: E): F[Option[Set[state]]] =
-      if transitions.isDefinedAt(event) then
-        val theInitialEvent: Option[InitialEvent] = initialEvent match
-          case None => Some(InitialEvent(eventNumber, event))
-          case _ => initialEvent
-        transitions(event).map:
-          newStates =>
-            newStates.foreach:
-              case `error` => reportErrorOnEvent(event, this.initialEvent)
-              case `ok` | `stay` => ()
-              case ns => if !ns.isInitial then ns.initialEvent = theInitialEvent
-            Some(newStates)
-    
-      else Sync[F].pure(None)
+    def apply(event: E): F[Option[Set[state]]] = 
+      Sync[F].defer:
+        if transitions.isDefinedAt(event) then
+          val theInitialEvent: Option[InitialEvent] = initialEvent match
+            case None => Some(InitialEvent(eventNumber, event))
+            case _ => initialEvent
+          transitions(event).map:
+            newStates =>
+              newStates.foreach:
+                case `error` => reportErrorOnEvent(event, this.initialEvent)
+                case `ok` | `stay` => ()
+                case ns => if !ns.isInitial then ns.initialEvent = theInitialEvent
+              Some(newStates)
+      
+        else Sync[F].pure(None)
 
     if initializing then thisMonitor.initial(this)
 
@@ -366,47 +366,45 @@ class Monitor[F[_]: Sync, E <: Event]:
     events.traverse(event => verify(event)).map(_ => end()).map(_ => this)
 
   def verify(event: E, eventNr: Long = 0)(using F: Sync[F]): F[this.type] =
-    if eventNr > 0 then
-      eventNumber = eventNr
-    else
-      eventNumber += 1
-    if initializing then initializing = false
-    verifyBeforeEvent(event)
-    if monitorAtTop then debug("\n===[" + event + "]===\n")
-    if relevant(event) then
-      for
-        _ <- states.applyEvent(event)
-        _ <- invariants.toList.traverse { case (e, inv) => check(inv(()), e).pure[F] }.void
-        _ <- monitors.traverse(_.verify(event).void)
-      yield ()
-    else Sync[F].unit
-    if monitorAtTop && DautOptions.DEBUG then printStates()
-    verifyAfterEvent(event)
-    Sync[F].pure(this)
+    for
+      _ <- F.delay { if eventNr > 0 then eventNumber = eventNr else eventNumber += 1 }
+      _ <- if (initializing) F.delay { initializing = false } else F.unit
+      _ <- F.delay { verifyBeforeEvent(event) }
+      _ <- if (monitorAtTop) F.delay { debug("\n===[" + event + "]===\n") } else F.unit
+      _ <- if relevant(event) then {
+              for
+                _ <- states.applyEvent(event)
+                _ <- invariants.toList.traverse { case (e, inv) => check(inv(()), e).pure[F] }.void
+                _ <- monitors.traverse(_.verify(event).void)
+              yield ()
+            } else
+              Sync[F].unit
+      _ <- if (monitorAtTop && DautOptions.DEBUG) F.delay { printStates() } else F.unit
+      _ <- F.delay { verifyAfterEvent(event) }
+    yield this
 
   def end()(using F: Sync[F]): F[this.type] =
     if !endCalled then
       endCalled = true
-      debug(s"Ending Daut trace evaluation for $monitorName")
-      val theEndStates = states.getAllStates
-      val hotStates = theEndStates.filter(!_.isFinal)
-      if hotStates.nonEmpty then
-        println()
-        println(s"*** Non final Daut $monitorName states:")
-        println()
-        hotStates.foreach:
-          hotState =>
-            print(hotState)
-            reportErrorAtEnd(hotState.initialEvent)
-            println()
-
       for
+        _ <- Sync[F].delay(debug(s"Ending Daut trace evaluation for $monitorName"))
+        _ <- Sync[F].delay:
+          val theEndStates = states.getAllStates
+          val hotStates = theEndStates.filter(!_.isFinal)
+          if hotStates.nonEmpty then
+            println()
+            println(s"*** Non final Daut $monitorName states:")
+            println()
+            hotStates.foreach: hotState =>
+              print(hotState)
+              reportErrorAtEnd(hotState.initialEvent)
+              println()
         _ <- monitors.traverse(_.end().void)
         _ <- abstractMonitors.traverse(_.end().void)
-      yield
-        println(s"Monitor $monitorName detected $errorCount errors!")
-        this
-    else Sync[F].pure(this)
+        _ <- Sync[F].delay(println(s"Monitor $monitorName detected $errorCount errors!"))
+      yield this
+    else
+      Sync[F].pure(this)
 
   def apply(event: E)(using F: Sync[F]): F[this.type] = verify(event)
   def apply(events: List[E])(using F: Sync[F]): F[this.type] = verify(events)
@@ -457,27 +455,28 @@ class Monitor[F[_]: Sync, E <: Event]:
     reportError("Error occurred at the end of trace")
 
   protected def reportError(e: String): F[Unit] =
-    println("***********")
-    println(s"ERROR : $e")
-    println("***********")
-    errorCount += 1
-    println(s"$monitorName error # $errorCount")
-    if DautOptions.PRINT_ERROR_BANNER then
-      println(
-        s"""
-           |███████╗██████╗ ██████╗  ██████╗ ██████╗
-           |██╔════╝██╔══██╗██╔══██╗██╔═══██╗██╔══██╗
-           |█████╗  ██████╔╝██████╔╝██║   ██║██████╔╝
-           |██╔══╝  ██╔══██╗██╔══██╗██║   ██║██╔══██╗
-           |███████╗██║  ██║██║  ██║╚██████╔╝██║  ██║
-           |╚══════╝╚═╝  ╚═╝╚═╝  ╚═╝ ╚═════╝ ╚═╝  ╚═╝
-           |
-        """.stripMargin)
-    callBack()
-    if STOP_ON_ERROR then
-      println("\n*** terminating on first error!\n")
-      Sync[F].raiseError(MonitorError())
-    else Sync[F].unit
+    Sync[F].delay:
+      println("***********")
+      println(s"ERROR : $e")
+      println("***********")
+      errorCount += 1
+      println(s"$monitorName error # $errorCount")
+      if DautOptions.PRINT_ERROR_BANNER then
+        println(
+          s"""
+            |███████╗██████╗ ██████╗  ██████╗ ██████╗
+            |██╔════╝██╔══██╗██╔══██╗██╔═══██╗██╔══██╗
+            |█████╗  ██████╔╝██████╔╝██║   ██║██████╔╝
+            |██╔══╝  ██╔══██╗██╔══██╗██║   ██║██╔══██╗
+            |███████╗██║  ██║██║  ██║╚██████╔╝██║  ██║
+            |╚══════╝╚═╝  ╚═╝╚═╝  ╚═╝ ╚═════╝ ╚═╝  ╚═╝
+            |
+          """.stripMargin)
+      callBack()
+      if STOP_ON_ERROR then
+        println("\n*** terminating on first error!\n")
+        Sync[F].raiseError(MonitorError())
+      else Sync[F].unit
 
 object Monitor:
   private var jsonWriter: PrintWriter = uninitialized
