@@ -4,7 +4,7 @@ import cats.effect.{IO, Sync}
 import cats.implicits._
 
 import scala.collection.mutable.{Map => MutMap}
-import scala.language.reflectiveCalls
+import scala.reflect.Selectable.reflectiveSelectable
 import scala.compiletime.uninitialized
 
 import java.io.{BufferedWriter, FileWriter, PrintWriter}
@@ -85,7 +85,8 @@ class Monitor[F[_]: Sync, E <: Event]:
       var statesToRemove: Set[state] = emptyStateSet
       var statesToAdd: Set[state] = emptyStateSet
       var newStates = states
-      states.toList.traverse {
+      states.toList
+      .traverse:
         sourceState =>
           sourceState(event).map:
               case None => ()
@@ -97,7 +98,7 @@ class Monitor[F[_]: Sync, E <: Event]:
                   case `stay` => statesToAdd += sourceState
                   case targetState => statesToAdd += targetState
             
-      }.map:
+      .map:
         _ =>
           if transitionTriggered then
             newStates --= statesToRemove
@@ -198,14 +199,18 @@ class Monitor[F[_]: Sync, E <: Event]:
       if transitionsInitialized then return thisMonitor.wnext(ts)
       transitionsInitialized = true
       name = "wnext"
-      transitions = ts.orElse { case _ => Sync[F].pure(Set(error)) }
+      transitions = ts.orElse:
+        case _ => 
+          Sync[F].pure(Set(error))
       this
 
     infix def next(ts: Transitions): state =
       if transitionsInitialized then return thisMonitor.next(ts)
       transitionsInitialized = true
       name = "next"
-      transitions = ts.orElse { case _ => Sync[F].pure(Set(error)) }
+      transitions = ts.orElse:
+        case _ => 
+          Sync[F].pure(Set(error))
       isFinal = false
       this
 
@@ -231,17 +236,17 @@ class Monitor[F[_]: Sync, E <: Event]:
         val theInitialEvent: Option[InitialEvent] = initialEvent match
           case None => Some(InitialEvent(eventNumber, event))
           case _ => initialEvent
-        transitions(event).map { newStates =>
-          newStates.foreach {
-            case `error` => reportErrorOnEvent(event, this.initialEvent)
-            case `ok` | `stay` => ()
-            case ns => if !ns.isInitial then ns.initialEvent = theInitialEvent
-          }
-          Some(newStates)
-        }
+        transitions(event).map:
+          newStates =>
+            newStates.foreach:
+              case `error` => reportErrorOnEvent(event, this.initialEvent)
+              case `ok` | `stay` => ()
+              case ns => if !ns.isInitial then ns.initialEvent = theInitialEvent
+            Some(newStates)
+    
       else Sync[F].pure(None)
 
-    if initializing then initial(this)
+    if initializing then thisMonitor.initial(this)
 
   protected trait fact extends state
 
@@ -279,9 +284,9 @@ class Monitor[F[_]: Sync, E <: Event]:
         else if end.contains(e) then
           on = false
         Sync[F].pure(Set.empty[state])
-    initial(this)
+    thisMonitor.initial(this)
 
-  protected implicit def liftInterval(iv: during): Boolean = iv.on
+  protected given Conversion[during, Boolean] = _.on
 
   protected infix def watch(ts: Transitions): anonymous = new anonymous:
     this.watch(ts)
@@ -332,34 +337,27 @@ class Monitor[F[_]: Sync, E <: Event]:
     s.isInitial = true
     states.initial(s)
 
-  protected implicit def convState2Boolean(s: state): Boolean =
-    states.getAllStates contains s
+  protected given Conversion[state, Boolean] = states.getAllStates contains _
 
-  protected implicit def convUnit2StateSet(u: Unit): Set[state] =
-    Set(ok)
+  protected given Conversion[Unit, Set[state]] = _ => Set(ok)
 
-  protected implicit def convBoolean2StateSet(b: Boolean): Set[state] =
-    Set(if b then ok else error)
+  protected given Conversion[Boolean, Set[state]] = b => Set(if b then ok else error)
 
-  protected implicit def convState2StateSet(state: state): Set[state] =
-    Set(state)
+  protected given Conversion[state, Set[state]] = Set(_)
 
-  protected implicit def conTuple2StateSet(states: (state, state)): Set[state] =
-    Set(states._1, states._2)
+  protected given Conversion[(state, state), Set[state]] = s => Set(s._1, s._2)
 
-  protected implicit def conTriple2StateSet(states: (state, state, state)): Set[state] =
-    Set(states._1, states._2, states._3)
+  protected given Conversion[(state, state, state), Set[state]] = s => Set(s._1, s._2, s._3)
 
-  protected implicit def convList2StateSet(states: List[state]): Set[state] =
-    states.toSet
+  protected given Conversion[List[state], Set[state]] = _.toSet
 
-  protected implicit def convState2AndState(s1: state): Object {def &(s2: state): Set[state]} = new:
+  protected given Conversion[state, Object {def &(s2: state): Set[state]}] = s1 => new:
     def &(s2: state): Set[state] = Set(s1, s2)
 
-  protected implicit def conStateSet2AndStateSet(set: Set[state]): Object {def &(s: state): Set[state]} = new:
+  protected given Conversion[Set[state], Object {def &(s: state): Set[state]}] = set => new:
     def &(s: state): Set[state] = set + s
 
-  protected implicit def liftBoolean(p: Boolean): Object {def ==>(q: Boolean): Boolean} = new:
+  protected given Conversion[Boolean, Object {def ==>(q: Boolean): Boolean}] = p => new:
     def ==>(q: Boolean): Boolean = !p || q
 
   def verify(events: List[E])(using F: Sync[F]): F[this.type] =
@@ -394,11 +392,12 @@ class Monitor[F[_]: Sync, E <: Event]:
         println()
         println(s"*** Non final Daut $monitorName states:")
         println()
-        hotStates.foreach { hotState =>
-          print(hotState)
-          reportErrorAtEnd(hotState.initialEvent)
-          println()
-        }
+        hotStates.foreach:
+          hotState =>
+            print(hotState)
+            reportErrorAtEnd(hotState.initialEvent)
+            println()
+
       for
         _ <- monitors.traverse(_.end().void)
         _ <- abstractMonitors.traverse(_.end().void)

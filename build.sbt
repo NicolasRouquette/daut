@@ -30,6 +30,7 @@ libraryDependencies ++= Seq(
 
 scalacOptions += "-explain"
 scalacOptions += "-explain-cyclic"
+scalacOptions += "-feature"
 
 enablePlugins(GenerateRunScript)
 
