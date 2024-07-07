@@ -118,7 +118,7 @@ class Monitor[F[_]: Sync, E <: Event] {
   protected def relevant(event: E): Boolean = true
   private val monitorName = this.getClass.getSimpleName
   private var monitors: List[Monitor[F, E]] = List()
-  private var abstractMonitors: List[Monitor[F, ?]] = List()
+  private var abstractMonitors: List[Monitor[F, ? <: Event]] = List()
   private val states = new States()
   private var invariants: List[(String, Unit => Boolean)] = Nil
   private var initializing: Boolean = true
@@ -148,7 +148,7 @@ class Monitor[F[_]: Sync, E <: Event] {
     this.monitors ++= monitors
   }
 
-  def monitorAbstraction[E](monitor: Monitor[F, E]): Monitor[F, E] = {
+  def monitorAbstraction[E <: Event](monitor: Monitor[F, E]): Monitor[F, E] = {
     abstractMonitors = abstractMonitors :+ monitor
     monitor
   }
@@ -592,7 +592,7 @@ object Monitor {
   }
 }
 
-class Abstract[F[_]: Sync, E] extends Monitor[F, E] {
+class Abstract[F[_]: Sync, E <: Event] extends Monitor[F, E] {
   private val abstraction = new scala.collection.mutable.ListBuffer[E]()
   private var recordAll: Boolean = false
 
@@ -613,7 +613,7 @@ class Abstract[F[_]: Sync, E] extends Monitor[F, E] {
   }
 }
 
-class Translate[F[_]: Sync, E1, E2] extends Monitor[F, E1] {
+class Translate[F[_]: Sync, E1 <: Event, E2 <: Event] extends Monitor[F, E1] {
   private val abstraction = new scala.collection.mutable.ListBuffer[E2]()
 
   def push(event: E2): Unit = {
