@@ -3,7 +3,7 @@ package daut0_experiments.Requirements
 import daut0_experiments.Events._
 import daut0_experiments.Steps._
 
-object Requirements {
+object Requirements:
   //
   // Steps
   //													eventName							isInRange																untilStep	untilState		conditionStep		stepName		dtStable	timeout
@@ -12,72 +12,97 @@ object Requirements {
     "SetDapActive", 					(x: Option[Boolean]) 	=> x == Some(true), 							None,		None,
     "SetDapSetPointAsMeter", 			(x: Option[Int]) 		=> x == Some(100), 								None, 		None, 			None,				"Step_02_01", 	2, 			10 		)
 
-  var Step_03_01 = new Observe_01[Int](				"StatusCrtFloodingAsLiter", 		(x: Option[Int]) 		=> x == Some(2000),								None, 		None, 			Some(Step_02_01),	"Step_03_01", 	2, 			10 		)
-  var Step_03_02 = new Observe_01[Int](				"SetI18OpenAsPercentage", 			(x: Option[Int]) 		=> x == Some(1), 								None, 		None, 			Some(Step_03_01),	"Step_03_02", 	2, 			10 		)
+  var Step_03_01 = new Observe_01[Int](
+    "StatusCrtFloodingAsLiter", 		(x: Option[Int]) 		=> x == Some(2000),								None, 		None, 			Some(Step_02_01),	"Step_03_01", 	2, 			10 		)
+  var Step_03_02 = new Observe_01[Int](
+    "SetI18OpenAsPercentage", 			(x: Option[Int]) 		=> x == Some(1), 								None, 		None, 			Some(Step_03_01),	"Step_03_02", 	2, 			10 		)
 
-  var Step_04_01 = new Observe_01[Float]( 			"StatusDepthAsMeter", 				(x: Option[Float]) 		=> x != None && 95 <= x.get && x.get <= 105,	None, 		None, 			Some(Step_03_02),	"Step_04_01", 	2, 			10 		)
-  var Step_04_02 = new Observe_01[Boolean]( 			"SetDapActive", 					(x: Option[Boolean]) 	=> x == Some(false), 							None,		None, 			Some(Step_04_01),	"Step_04_02", 	2, 			10 		)
-  var Step_04_03 = new Observe_01[String](			"StatusOperationMode", 				(x: Option[String]) 	=> x == Some("manual"), 						None, 		None,			Some(Step_04_02),	"Step_04_03", 	2, 			10 		)
+  var Step_04_01 = new Observe_01[Float](
+    "StatusDepthAsMeter", 				(x: Option[Float]) 		=> x != None && 95 <= x.get && x.get <= 105,	None, 		None, 			Some(Step_03_02),	"Step_04_01", 	2, 			10 		)
+  var Step_04_02 = new Observe_01[Boolean](
+    "SetDapActive", 					(x: Option[Boolean]) 	=> x == Some(false), 							None,		None, 			Some(Step_04_01),	"Step_04_02", 	2, 			10 		)
+  var Step_04_03 = new Observe_01[String](
+    "StatusOperationMode", 				(x: Option[String]) 	=> x == Some("manual"), 						None, 		None,			Some(Step_04_02),	"Step_04_03", 	2, 			10 		)
 
-  var Step_05_01 = new Observe_01[Int](				"SetTrimForwardAsLiter", 			(x: Option[Int]) 		=> x == Some(200),								None, 		None, 			Some(Step_04_03),	"Step_05_01", 	2, 			10 		)
-  var Step_05_02 = new Observe_02[Int, Boolean](		"StatusTrimmedForwardAsLiter", 		(x: Option[Int]) 		=> x != None && 199 <= x.get && x.get <= 201,	None, 		None,
+  var Step_05_01 = new Observe_01[Int](
+    "SetTrimForwardAsLiter", 			(x: Option[Int]) 		=> x == Some(200),								None, 		None, 			Some(Step_04_03),	"Step_05_01", 	2, 			10 		)
+  var Step_05_02 = new Observe_02[Int, Boolean](
+    "StatusTrimmedForwardAsLiter", 		(x: Option[Int]) 		=> x != None && 199 <= x.get && x.get <= 201,	None, 		None,
     "StatusPitchGoesDown", 				(x: Option[Boolean]) 	=> x == Some(true), 							None, 		None,  			Some(Step_05_01),	"Step_05_02", 	2, 			10		)
 
-  var Step_06_01 = new Observe_01[Int](				"SetFloodTorpedoTubeAsId", 			(x: Option[Int]) 		=> x == Some(1),								None,		None, 			Some(Step_05_02),	"Step_06_01", 	2, 			10 		)
+  var Step_06_01 = new Observe_01[Int](
+    "SetFloodTorpedoTubeAsId", 			(x: Option[Int]) 		=> x == Some(1),								None,		None, 			Some(Step_05_02),	"Step_06_01", 	2, 			10 		)
   var Step_06_02 = new Observe_02[Boolean, Boolean](
     "StatusIsTorpedoTube01Flooded", 	(x: Option[Boolean]) 	=> x == Some(true),								None, 		None,
     "StatusPitchGoesDown", 				(x: Option[Boolean]) 	=> x == Some(true), 							None, 		None,  			Some(Step_06_01),	"Step_06_02", 	2, 			10		)
 
-  var Step_07_01 = new Observe_01[String](			"SetCrewMoving", 					(x: Option[String]) 	=> x == Some("FORWARD"),						None, 		None, 			Some(Step_06_02),	"Step_07_01", 	2, 			10 		)
+  var Step_07_01 = new Observe_01[String](
+    "SetCrewMoving", 					(x: Option[String]) 	=> x == Some("FORWARD"),						None, 		None, 			Some(Step_06_02),	"Step_07_01", 	2, 			10 		)
   var Step_07_02 = new Observe_02[String, Boolean](
     "StatusCrewMoving", 				(x: Option[String]) 	=> x == Some("FORWARD"),						None, 		None,
     "StatusPitchGoesDown", 				(x: Option[Boolean]) 	=> x == Some(true), 							None, 		None,  			Some(Step_07_01),	"Step_07_02", 	2, 			10		)
 
-  var Step_08_01 = new Observe_01[Float](				"SetPropulsionAsRpm", 				(x: Option[Float]) 		=> x == Some(24),								None, 		None, 			Some(Step_07_02),	"Step_08_01", 	2, 			10 		)
-  var Step_08_02 = new Observe_01[Float](				"StatusPropulsionAsRpm", 			(x: Option[Float]) 		=> x != None && 23.5 <= x.get && x.get <= 24.5,	None, 		None, 			Some(Step_08_01),	"Step_08_02", 	2, 			10 		)
+  var Step_08_01 = new Observe_01[Float](
+    "SetPropulsionAsRpm", 				(x: Option[Float]) 		=> x == Some(24),								None, 		None, 			Some(Step_07_02),	"Step_08_01", 	2, 			10 		)
+  var Step_08_02 = new Observe_01[Float](
+    "StatusPropulsionAsRpm", 			(x: Option[Float]) 		=> x != None && 23.5 <= x.get && x.get <= 24.5,	None, 		None, 			Some(Step_08_01),	"Step_08_02", 	2, 			10 		)
 
-  var Step_09_01 = new Observe_01[Float]( 			"StatusDepthAsMeter", 				(x: Option[Float]) 		=> x != None && 125 <= x.get && x.get <= 135,	None, 		None, 			Some(Step_08_02),	"Step_09_01", 	2, 			10 		)
-  var Step_09_02 = new Observe_01[Float]( 			"SetPropulsionAsRpm", 				(x: Option[Float]) 		=> x == Some(0), 								None, 		None, 			Some(Step_09_01),	"Step_09_02", 	2, 			10 		)
-  var Step_09_03 = new Observe_01[Float](				"StatusPropulsionAsRpm", 			(x: Option[Float]) 		=> x == Some(0), 								None, 		None, 			Some(Step_09_02),	"Step_09_03", 	2, 			10 		)
+  var Step_09_01 = new Observe_01[Float](
+    "StatusDepthAsMeter", 				(x: Option[Float]) 		=> x != None && 125 <= x.get && x.get <= 135,	None, 		None, 			Some(Step_08_02),	"Step_09_01", 	2, 			10 		)
+  var Step_09_02 = new Observe_01[Float](
+    "SetPropulsionAsRpm", 				(x: Option[Float]) 		=> x == Some(0), 								None, 		None, 			Some(Step_09_01),	"Step_09_02", 	2, 			10 		)
+  var Step_09_03 = new Observe_01[Float](
+    "StatusPropulsionAsRpm", 			(x: Option[Float]) 		=> x == Some(0), 								None, 		None, 			Some(Step_09_02),	"Step_09_03", 	2, 			10 		)
 
   var Step_10_01 = new Observe_03[Float, Float, Float](
     "StatusPitchAsDeg", 				(x: Option[Float]) 		=> x != None && 3 <= x.get && x.get <= 7,		None, 		None,
     "StatusVerticalSpeedAsMPerSec", 	(x: Option[Float]) 		=> x != None && 0.1 <= x.get && x.get <= 0.3,	None, 		None,
     "StatusHorizontalSpeedAsMPerSec", 	(x: Option[Float]) 		=> x != None && 0.0 <= x.get && x.get <= 0.1,	None, 		None, 			Some(Step_09_03),	"Step_10_01", 	1, 			10 		)
-  var Step_10_02 = new Observe_01[Boolean](			"StatusBottomed", 					(x: Option[Boolean]) 	=> x == Some(true), 							None, 		None, 			Some(Step_10_01),	"Step_10_02", 	1, 			10 		)
-  var Step_10_03 = new Observe_01[Float](				"StatusDepthAsMeter", 				(x: Option[Float]) 		=> x != None && 145 <= x.get && x.get <= 155, 	None, 		None, 			Some(Step_10_02),	"Step_10_03", 	1, 			10 		)
+  var Step_10_02 = new Observe_01[Boolean](
+    "StatusBottomed", 					(x: Option[Boolean]) 	=> x == Some(true), 							None, 		None, 			Some(Step_10_01),	"Step_10_02", 	1, 			10 		)
+  var Step_10_03 = new Observe_01[Float](
+    "StatusDepthAsMeter", 				(x: Option[Float]) 		=> x != None && 145 <= x.get && x.get <= 155, 	None, 		None, 			Some(Step_10_02),	"Step_10_03", 	1, 			10 		)
 
   var Step_11_01 = new Observe_02[Int, Int](
     "SetBilgePump", 					(x: Option[Int]) 		=> x == Some(2), 								None, 		None,
     "SetDrainToSeaCrt01", 				(x: Option[Int]) 		=> x == Some(2000), 							None, 		None, 			Some(Step_10_03),	"Step_11_01", 	2, 			10 		)
-  var Step_11_02 = new Observe_01[Int](				"StatusDrainToSeaCrt01", 			(x: Option[Int]) 		=> x != None && 1999 <= x.get && x.get <= 2001, None, 		None, 			Some(Step_11_01),	"Step_11_02", 	2, 			10 		)
+  var Step_11_02 = new Observe_01[Int](
+    "StatusDrainToSeaCrt01", 			(x: Option[Int]) 		=> x != None && 1999 <= x.get && x.get <= 2001, None, 		None, 			Some(Step_11_01),	"Step_11_02", 	2, 			10 		)
 
   var Step_12_01 = new Observe_02[Int, Int](
     "SetBilgePump", 					(x: Option[Int]) 		=> x == Some(2), 								None, 		None,
     "SetDrainToSeaCrt01", 				(x: Option[Int]) 		=> x == Some(500), 								None, 		None, 			Some(Step_11_02),	"Step_12_01", 	2, 			10 		)
-  var Step_12_02 = new Observe_01[Int](				"StatusDrainToSeaCrt01", 			(x: Option[Int]) 		=> x != None && 499 <= x.get && x.get <= 501, 	None, 		None, 			Some(Step_12_01),	"Step_12_02", 	2, 			10 		)
+  var Step_12_02 = new Observe_01[Int](
+    "StatusDrainToSeaCrt01", 			(x: Option[Int]) 		=> x != None && 499 <= x.get && x.get <= 501, 	None, 		None, 			Some(Step_12_01),	"Step_12_02", 	2, 			10 		)
   //var Step_12_03 = new Switch_01[Boolean]			"StatusUnbottoming",
-  var Step_12_03 = new Observe_01[Boolean](			"StatusUnbottoming", 				(x: Option[Boolean]) 	=> x == Some(true), 							None, 		None, 			Some(Step_12_02),	"Step_12_03", 	2, 			10 		)
+  var Step_12_03 = new Observe_01[Boolean](
+    "StatusUnbottoming", 				(x: Option[Boolean]) 	=> x == Some(true), 							None, 		None, 			Some(Step_12_02),	"Step_12_03", 	2, 			10 		)
 
-  var Step_13_01 = new Observe_01[Int](				"SetTrimAftAsLiter",				(x: Option[Int]) 		=> x == Some(200),								None, 		None, 			Some(Step_12_03),	"Step_13_01", 	2, 			10 		)
+  var Step_13_01 = new Observe_01[Int](
+    "SetTrimAftAsLiter",				(x: Option[Int]) 		=> x == Some(200),								None, 		None, 			Some(Step_12_03),	"Step_13_01", 	2, 			10 		)
   var Step_13_02 = new Observe_02[Int, Boolean](
     "StatusTrimAftAsLiter", 			(x: Option[Int]) 		=> x != None && 199 <= x.get && x.get <= 201,	None, 		None,
     "StatusPitchGoesUp", 				(x: Option[Boolean]) 	=> x == Some(true), 							None, 		None,  			Some(Step_13_01),	"Step_13_02", 	2, 			10		)
 
-  var Step_14_01 = new Observe_01[Int](				"SetDrainTorpedoTubeAsId",			(x: Option[Int]) 		=> x == Some(1),								None, 		None, 			Some(Step_13_02),	"Step_14_01", 	2, 			10 		)
+  var Step_14_01 = new Observe_01[Int](
+    "SetDrainTorpedoTubeAsId",			(x: Option[Int]) 		=> x == Some(1),								None, 		None, 			Some(Step_13_02),	"Step_14_01", 	2, 			10 		)
   var Step_14_02 = new Observe_02[Boolean, Boolean](
     "StatusIsTorpedoTube01Drained", 	(x: Option[Boolean]) 	=> x == Some(true),								None, 		None,
     "StatusPitchGoesUp", 				(x: Option[Boolean]) 	=> x == Some(true), 							None, 		None,  			Some(Step_14_01),	"Step_14_02", 	2, 			10		)
 
-  var Step_15_01 = new Observe_01[String](			"SetCrewMoving", 					(x: Option[String]) 	=> x == Some("CENTER"),							None, 		None, 			Some(Step_14_02),	"Step_15_01", 	2, 			10 		)
+  var Step_15_01 = new Observe_01[String](
+    "SetCrewMoving", 					(x: Option[String]) 	=> x == Some("CENTER"),							None, 		None, 			Some(Step_14_02),	"Step_15_01", 	2, 			10 		)
   var Step_15_02 = new Observe_02[String, Boolean](
     "StatusCrewMoving", 				(x: Option[String]) 	=> x == Some("CENTER"),							None, 		None,
     "StatusPitchGoesUp", 				(x: Option[Boolean]) 	=> x == Some(true), 							None, 		None,  			Some(Step_15_01),	"Step_15_02", 	2, 			10		)
 
-  var Step_16_01 = new Observe_01[Float](				"SetPropulsionAsRpm", 				(x: Option[Float]) 		=> x == Some(60),								None, 		None, 			Some(Step_15_02),	"Step_16_01", 	2, 			10 		)
-  var Step_16_02 = new Observe_01[Float](				"StatusPropulsionAsRpm", 			(x: Option[Float]) 		=> x != None && 59.5 <= x.get && x.get <= 60.5,	None, 		None, 			Some(Step_16_01),	"Step_16_02", 	2, 			10 		)
+  var Step_16_01 = new Observe_01[Float](
+    "SetPropulsionAsRpm", 				(x: Option[Float]) 		=> x == Some(60),								None, 		None, 			Some(Step_15_02),	"Step_16_01", 	2, 			10 		)
+  var Step_16_02 = new Observe_01[Float](
+    "StatusPropulsionAsRpm", 			(x: Option[Float]) 		=> x != None && 59.5 <= x.get && x.get <= 60.5,	None, 		None, 			Some(Step_16_01),	"Step_16_02", 	2, 			10 		)
 
-  var Step_17_01 = new Observe_01[Float]( 			"StatusDepthAsMeter", 				(x: Option[Float]) 		=> x != None && 49 <= x.get && x.get <= 51,		None, 		None, 			Some(Step_16_02),	"Step_17_01", 	2, 			10 		)
+  var Step_17_01 = new Observe_01[Float](
+    "StatusDepthAsMeter", 				(x: Option[Float]) 		=> x != None && 49 <= x.get && x.get <= 51,		None, 		None, 			Some(Step_16_02),	"Step_17_01", 	2, 			10 		)
   //
   // Until statements (tbd: should be doable in above table instead - see untilStep, untilState)
   //
@@ -111,7 +136,7 @@ object Requirements {
     Step_17_01
   )
 //  instance.map( x => x.Init() )
-}
+end Requirements
 
 // NOTE
 // PARTLY OPEN - needs switch
@@ -121,7 +146,6 @@ object Requirements {
 // Req. 12.4 (STATUS) - (see 12.2)
 // Req. 12.5 (STATUS->SETTING) - If value unbottoming is not true for 3 sec. repeat 12.3, 12.4, 12.5. <-- ABSTRACTION 'unbottoming'
 // Req. 12.6 (STATUS) - Value unbottoming is true.
-
 
 // ---------------------------------------------------------------------------------------------------------------------------------------------
 //
@@ -156,7 +180,6 @@ object Requirements {
 // Req 3.3 (SETTING) - Value I18 shall be set to 1 percent [exactly]
 // [Order of requirements is (3.2, 3.3)]
 // [Timeout for step is 30 sec]
-//
 
 // ---------------------------------------------------------------------------------------------------------------------------------------------
 //
@@ -173,7 +196,6 @@ object Requirements {
 // Req. 4.3 (STATUS) - Value operation mode shall be manual [exactly].
 // [Order of requirements is (4.1, 4.2, 4.3)]
 // [Timeout for step is 30 sec]
-//
 
 // ---------------------------------------------------------------------------------------------------------------------------------------------
 //
@@ -191,7 +213,6 @@ object Requirements {
 // Req. 5.3 (STATUS) - Value pitch shall go down [exactly]. <-- ABSTRACTION of 'statusPitchGoesDown'
 // [Order of requirements is (5.1, 5.2), (5.1, 5.3)]
 // [Timeout for step is 30 sec]
-//
 
 // ---------------------------------------------------------------------------------------------------------------------------------------------
 //
@@ -209,7 +230,6 @@ object Requirements {
 // Req. 6.2 (STATUS) - Value pitch shall go down [exactly].
 // [Order of requirements is (6.1, 6.2), (6.1, 6.3)]
 // [Timeout for step is 30 sec]
-//
 
 // ---------------------------------------------------------------------------------------------------------------------------------------------
 //
@@ -227,7 +247,6 @@ object Requirements {
 // Req. 7.2 (STATUS) - Value pitch shall go down [exactly].
 // [Order of requirements is (7.1, 7.2), (7.1, 7.3)]
 // [Timeout for step is 30 sec]
-//
 
 // ---------------------------------------------------------------------------------------------------------------------------------------------
 //
@@ -243,7 +262,6 @@ object Requirements {
 // Req. 8.2 (STATUS) - Value propulsion shall be 24 rpm [+/- 0.5].
 // [Order of requirements is (8.1, 8.2)]
 // [Timeout for step is 10 sec]
-//
 
 // ---------------------------------------------------------------------------------------------------------------------------------------------
 //
@@ -260,7 +278,6 @@ object Requirements {
 // Req. 9.3 (STATUS) - Value propulsion shall be 0 rpm [exactly] [within 10 seconds].
 // [Order of requirements is (9.1, 9.2, 9.3)]
 // [Timeout for step is 30 sec]
-//
 
 // ---------------------------------------------------------------------------------------------------------------------------------------------
 //
@@ -283,7 +300,6 @@ object Requirements {
 // Req. 10.3 (STATUS) - If value bottoming is true, then depth shall be 150 m [+/- 5 m].
 // [Order of requirements is (10.1.1 - 10.1.3, 10.2), (10.2, 10.3)]
 // [Timeout for step is 180 sec]
-//
 
 // ---------------------------------------------------------------------------------------------------------------------------------------------
 //
@@ -300,7 +316,6 @@ object Requirements {
 // Req. 11.2 (STATUS) - Value drainedToSea shall be 2000 liter, CRT 1. <-- ABSTRACTION 'drainedToSea'
 // [Order of requirements is (11.1, 11.2)]
 // [Timeout for step is 120 sec]
-//
 
 // ---------------------------------------------------------------------------------------------------------------------------------------------
 //
@@ -324,7 +339,6 @@ object Requirements {
 // Req. 12.6 (STATUS) - Value unbottoming is true.
 // [Order of requirements is (12.1, 12.2, 12.3, 12.4, 12.5, 12.6)]
 // [Timeout for step is 120 sec]
-//
 
 // ---------------------------------------------------------------------------------------------------------------------------------------------
 //
@@ -342,7 +356,6 @@ object Requirements {
 // Req. 13.3 (STATUS) - Value pitch shall go up [exactly]. <-- ABSTRACTION 'pitchGoesUp'
 // [Order of requirements is (13.1, 13.2), (13.1, 13.3)]
 // [Timeout for step is 30 sec]
-//
 
 // ---------------------------------------------------------------------------------------------------------------------------------------------
 //
@@ -360,7 +373,6 @@ object Requirements {
 // Req. 14.2 (STATUS) - Value pitch shall go up [exactly].
 // [Order of requirements is (14.1, 14.2), (14.1, 14.3)]
 // [Timeout for step is 30 sec]
-//
 
 // ---------------------------------------------------------------------------------------------------------------------------------------------
 //
@@ -378,7 +390,6 @@ object Requirements {
 // Req. 15.2 (STATUS) - Value pitch shall go up [exactly].
 // [Order of requirements is (15.1, 15.2), (15.1, 15.3)]
 // [Timeout for step is 30 sec]
-//
 
 // ---------------------------------------------------------------------------------------------------------------------------------------------
 //
@@ -394,7 +405,6 @@ object Requirements {
 // Req. 16.2 (STATUS) - Value propulsion shall be 60 rpm [+/- 0.5].
 // [Order of requirements is (16.1, 16.2)]
 // [Timeout for step is 10 sec]
-//
 
 // ---------------------------------------------------------------------------------------------------------------------------------------------
 //
@@ -408,7 +418,6 @@ object Requirements {
 // Req. 17.1 (STATUS) - Value depth shall be 50 meter [exactly].
 // [Order of requirements is ()]
 // [Timeout for step is 240 sec]
-//
 
 // ---------------------------------------------------------------------------------------------------------------------------------------------
 //

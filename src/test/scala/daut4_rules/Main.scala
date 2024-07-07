@@ -3,6 +3,7 @@ package daut4_rules
 import daut._
 import cats.effect.{IO, IOApp, ExitCode, Sync}
 import cats.syntax.applicative._ 
+import scala.language.implicitConversions
 
 /**
  * A task acquiring a lock should eventually release it. At most one task

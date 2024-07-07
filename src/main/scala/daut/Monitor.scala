@@ -337,6 +337,8 @@ class Monitor[F[_]: Sync, E <: Event]:
     s.isInitial = true
     states.initial(s)
 
+  protected given state2Set: Conversion[Set[state], F[Set[state]]] = states => Sync[F].pure(states)
+
   protected given Conversion[state, Boolean] = states.getAllStates contains _
 
   protected given Conversion[Unit, Set[state]] = _ => Set(ok)

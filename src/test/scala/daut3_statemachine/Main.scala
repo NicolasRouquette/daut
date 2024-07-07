@@ -3,6 +3,7 @@ package daut3_statemachine
 import daut._
 import cats.effect.{IO, IOApp, ExitCode, Sync}
 import cats.syntax.applicative._
+import scala.language.implicitConversions
 
 trait TaskEvent extends daut.Event
 case class start(task: Int) extends TaskEvent

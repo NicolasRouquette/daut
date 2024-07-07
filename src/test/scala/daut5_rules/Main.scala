@@ -3,6 +3,7 @@ package daut5_rules
 import daut._
 import cats.effect.{IO, IOApp, ExitCode, Sync}
 import cats.syntax.applicative._
+import scala.language.implicitConversions
 
 /**
  * Property AcquireRelease: A task acquiring a lock should eventually release it. At most one task

@@ -2,7 +2,7 @@ package daut0_experiments.EventStream
 
 import daut0_experiments.Events._
 
-object EventStream {
+object EventStream:
 
   var instance = List[Event]( // example event stream
     //
@@ -164,4 +164,4 @@ object EventStream {
     //
     Time (100)
   )
-}
+

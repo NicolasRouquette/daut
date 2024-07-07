@@ -3,12 +3,14 @@ package daut1_temporal
 import daut._
 import cats.effect.{IO, IOApp, ExitCode, Sync}
 import cats.syntax.applicative._ 
+import scala.language.implicitConversions
 
 trait LockEvent extends Event
 case class acquire(t: Int, x: Int) extends LockEvent
 case class release(t: Int, x: Int) extends LockEvent
 
 class AcquireRelease extends Monitor[IO, LockEvent]:
+
   always:
     case acquire(t, x) => 
       Sync[IO].delay:
