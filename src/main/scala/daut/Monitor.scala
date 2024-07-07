@@ -318,7 +318,7 @@ class Monitor[F[_]: Sync, E <: Event] {
         else if (end.contains(e)) {
           on = false
         }
-        Sync[F].unit
+        Sync[F].pure(Set.empty[state])
     }
     initial(this)
   }
@@ -379,7 +379,7 @@ class Monitor[F[_]: Sync, E <: Event] {
   }
 
   protected def check(b: Boolean): Unit = {
-    if (!b) reportError()
+    if (!b) reportError("check failed")
   }
 
   protected def check(b: Boolean, e: String): Unit = {
@@ -441,11 +441,9 @@ class Monitor[F[_]: Sync, E <: Event] {
       for {
         _ <- states.applyEvent(event)
         _ <- invariants.toList.traverse { case (e, inv) => check(inv(()), e).pure[F] }.void
-        _ <- monitors.traverse(_.verify(event)).void
+        _ <- monitors.traverse(_.verify(event).void)
       } yield ()
-    } else {
-      monitors.traverse(_.verify(event)).void
-    }
+    } else Sync[F].unit
     if (monitorAtTop && DautOptions.DEBUG) printStates()
     verifyAfterEvent(event)
     Sync[F].pure(this)
@@ -468,8 +466,8 @@ class Monitor[F[_]: Sync, E <: Event] {
         }
       }
       for {
-        _ <- monitors.traverse(_.end()).void
-        _ <- abstractMonitors.traverse(_.end()).void
+        _ <- monitors.traverse(_.end().void)
+        _ <- abstractMonitors.traverse(_.end().void)
       } yield {
         println(s"Monitor $monitorName detected $errorCount errors!")
         this
@@ -523,7 +521,7 @@ class Monitor[F[_]: Sync, E <: Event] {
         println(s"trigger event: ${trigger.event} event number ${trigger.eventNr}")
     }
     println(s"current event: $event event number $eventNumber")
-    reportError()
+    reportError("Error occurred during event processing")
   }
 
   protected def reportErrorAtEnd(initialEvent: Option[InitialEvent]): Unit = {
@@ -533,10 +531,13 @@ class Monitor[F[_]: Sync, E <: Event] {
       case Some(trigger) =>
         println(s"trigger event: ${trigger.event} event number ${trigger.eventNr}")
     }
-    reportError()
+    reportError("Error occurred at the end of trace")
   }
 
-  protected def reportError(): Unit = {
+  protected def reportError(e: String): F[Unit] = {
+    println("***********")
+    println(s"ERROR : $e")
+    println("***********")
     errorCount += 1
     println(s"$monitorName error # $errorCount")
     if (DautOptions.PRINT_ERROR_BANNER) {
@@ -556,13 +557,6 @@ class Monitor[F[_]: Sync, E <: Event] {
       println("\n*** terminating on first error!\n")
       Sync[F].raiseError(MonitorError())
     } else Sync[F].unit
-  }
-
-  protected def reportError(e: String): F[Unit] = {
-    println("***********")
-    println(s"ERROR : $e")
-    println("***********")
-    reportError()
   }
 }
 
