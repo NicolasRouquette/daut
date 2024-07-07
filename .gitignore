@@ -3,6 +3,7 @@
 .bsp/
 .idea/
 .metals/
+.vscode
 logs/
 out/
 project/
