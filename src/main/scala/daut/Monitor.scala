@@ -59,37 +59,30 @@ class Monitor[F[_]: Sync, E <: Event] {
       val key = keyOf(event)
       key match {
         case None =>
-          applyEventToStateSet(event)(mainStates).flatMap {
-            case None => F.unit
-            case Some(newStates) =>
-              mainStates = newStates
-              transitionTriggered = true.pure[F]
-          }.flatMap { _ =>
-            indexedStates.toList.traverse { case (index, ss) =>
-              applyEventToStateSet(event)(ss).flatMap {
-                case None => F.unit
+          for {
+            _ <- applyEventToStateSet(event)(mainStates).map {
+              case None => ()
+              case Some(newStates) =>
+                mainStates = newStates
+                transitionTriggered = true
+            }
+            _ <- indexedStates.toList.traverse { case (index, ss) =>
+              applyEventToStateSet(event)(ss).map {
+                case None => ()
                 case Some(newStates) =>
                   indexedStates += (index -> newStates)
-                  transitionTriggered = true.pure[F]
+                  transitionTriggered = true
               }
-            }.void
-          }
+            }
+          } yield ()
         case Some(index) =>
           val ss = indexedStates.getOrElse(index, mainStates)
-          applyEventToStateSet(event)(ss).flatMap {
-            case None => F.unit
+          applyEventToStateSet(event)(ss).map {
+            case None => ()
             case Some(newStates) =>
               indexedStates += (index -> newStates)
-              transitionTriggered = true.pure[F]
+              transitionTriggered = true
           }
-      }.flatMap { _ =>
-        if (transitionTriggered) {
-          if (SHOW_TRANSITIONS || Monitor.SHOW_TRANSITIONS) {
-            println(s"@[${monitorName}] $event")
-          }
-          Monitor.logTransition(event)
-        }
-        F.unit
       }
     }
 
@@ -99,23 +92,23 @@ class Monitor[F[_]: Sync, E <: Event] {
       var statesToAdd: Set[state] = emptyStateSet
       var newStates = states
       states.toList.traverse { sourceState =>
-        sourceState(event).flatMap {
-          case None => F.unit
+        sourceState(event).map {
+          case None => ()
           case Some(targetStates) =>
             transitionTriggered = true
             statesToRemove += sourceState
-            targetStates.toList.traverse {
-              case `error` | `ok` => F.unit
-              case `stay` => statesToAdd += sourceState; F.unit
-              case targetState => statesToAdd += targetState; F.unit
-            }.void
+            targetStates.foreach {
+              case `error` | `ok` => ()
+              case `stay` => statesToAdd += sourceState
+              case targetState => statesToAdd += targetState
+            }
         }
-      }.flatMap { _ =>
+      }.map { _ =>
         if (transitionTriggered) {
           newStates --= statesToRemove
           newStates ++= statesToAdd
-          F.pure(Some(newStates))
-        } else F.pure(None)
+          Some(newStates)
+        } else None
       }
     }
   }
@@ -170,8 +163,8 @@ class Monitor[F[_]: Sync, E <: Event] {
 
   protected type Transitions = PartialFunction[E, F[Set[state]]]
 
-  private def noTransitions: Transitions = {
-    case _ if false => null
+  private def noTransitions(using F: Sync[F]): Transitions = {
+    case _ if false => F.pure(Set.empty[state])
   }
 
   private val emptyStateSet: Set[state] = Set()
@@ -210,7 +203,7 @@ class Monitor[F[_]: Sync, E <: Event] {
       if (transitionsInitialized) return thisMonitor.always(ts)
       transitionsInitialized = true
       name = "always"
-      transitions = ts andThen (_ + this)
+      transitions = ts.andThen(_.map(_ + this))
       this
     }
 
@@ -227,7 +220,7 @@ class Monitor[F[_]: Sync, E <: Event] {
       if (transitionsInitialized) return thisMonitor.wnext(ts)
       transitionsInitialized = true
       name = "wnext"
-      transitions = ts orElse { case _ => error.pure[F] }
+      transitions = ts.orElse { case _ => Sync[F].pure(Set(error)) }
       this
     }
 
@@ -235,7 +228,7 @@ class Monitor[F[_]: Sync, E <: Event] {
       if (transitionsInitialized) return thisMonitor.next(ts)
       transitionsInitialized = true
       name = "next"
-      transitions = ts orElse { case _ => error.pure[F] }
+      transitions = ts.orElse { case _ => Sync[F].pure(Set(error)) }
       isFinal = false
       this
     }
@@ -245,7 +238,7 @@ class Monitor[F[_]: Sync, E <: Event] {
         if (transitionsInitialized) return thisMonitor.unless(ts1).watch(ts2)
         transitionsInitialized = true
         name = "until"
-        transitions = ts1 orElse (ts2 andThen (_ + thisState))
+        transitions = ts1.orElse(ts2.andThen(_.map(_ + thisState)))
         thisState
       }
     }
@@ -255,7 +248,7 @@ class Monitor[F[_]: Sync, E <: Event] {
         if (transitionsInitialized) return thisMonitor.until(ts1).watch(ts2)
         transitionsInitialized = true
         name = "until"
-        transitions = ts1 orElse (ts2 andThen (_ + thisState))
+        transitions = ts1.orElse(ts2.andThen(_.map(_ + thisState)))
         isFinal = false
         thisState
       }
@@ -267,16 +260,15 @@ class Monitor[F[_]: Sync, E <: Event] {
           case None => Some(InitialEvent(eventNumber, event))
           case _ => initialEvent
         }
-        transitions(event).flatMap { newStates =>
-          newStates.toList.traverse { ns =>
-            ns match {
-              case `error` => reportErrorOnEvent(event, this.initialEvent)
-              case `ok` | `stay` => F.unit
-              case ns => if (!ns.isInitial) ns.initialEvent = theInitialEvent; F.unit
-            }
-          }.map(_ => Some(newStates))
+        transitions(event).map { newStates =>
+          newStates.foreach {
+            case `error` => reportErrorOnEvent(event, this.initialEvent)
+            case `ok` | `stay` => ()
+            case ns => if (!ns.isInitial) ns.initialEvent = theInitialEvent
+          }
+          Some(newStates)
         }
-      } else F.pure(None)
+      } else Sync[F].pure(None)
     }
 
     if (initializing) {
@@ -326,7 +318,7 @@ class Monitor[F[_]: Sync, E <: Event] {
         else if (end.contains(e)) {
           on = false
         }
-        F.unit
+        Sync[F].unit
     }
     initial(this)
   }
@@ -432,9 +424,8 @@ class Monitor[F[_]: Sync, E <: Event] {
     def ==>(q: Boolean): Boolean = !p || q
   }
 
-  def verify(events: List[E]): this.type = {
-    events.traverse(event => verify(event)).map(_ => end())
-    this
+  def verify(events: List[E])(using F: Sync[F]): F[this.type] = {
+    events.traverse(event => verify(event)).map(_ => end()).map(_ => this)
   }
 
   def verify(event: E, eventNr: Long = 0)(using F: Sync[F]): F[this.type] = {
@@ -447,13 +438,12 @@ class Monitor[F[_]: Sync, E <: Event] {
     verifyBeforeEvent(event)
     if (monitorAtTop) debug("\n===[" + event + "]===\n")
     if (relevant(event)) {
-      states.applyEvent(event).flatMap { _ =>
-        invariants.toList.traverse { case (e, inv) => check(inv(()), e) }.void
-      }
+      for {
+        _ <- states.applyEvent(event)
+        _ <- invariants.toList.traverse { case (e, inv) => check(inv(()), e).pure[F] }.void
+      } yield ()
     }
-    for (monitor <- monitors) {
-      monitor.verify(event)
-    }
+    monitors.traverse(_.verify(event)).void
     if (monitorAtTop && DautOptions.DEBUG) printStates()
     verifyAfterEvent(event)
     F.pure(this)
@@ -475,11 +465,14 @@ class Monitor[F[_]: Sync, E <: Event] {
           println()
         }
       }
-      monitors.traverse(_.end()).void
-      abstractMonitors.traverse(_.end()).void
-      println(s"Monitor $monitorName detected $errorCount errors!")
-    }
-    F.pure(this)
+      for {
+        _ <- monitors.traverse(_.end()).void
+        _ <- abstractMonitors.traverse(_.end()).void
+      } yield {
+        println(s"Monitor $monitorName detected $errorCount errors!")
+        this
+      }
+    } else F.pure(this)
   }
 
   def apply(event: E)(using F: Sync[F]): F[this.type] = verify(event)
@@ -520,7 +513,7 @@ class Monitor[F[_]: Sync, E <: Event] {
     allRecordings
   }
 
-  protected def reportErrorOnEvent(event: E, initialEvent: Option[InitialEvent]): F[Unit] = {
+  protected def reportErrorOnEvent(event: E, initialEvent: Option[InitialEvent]): Unit = {
     println("\n*** ERROR")
     initialEvent match {
       case None =>
@@ -531,7 +524,7 @@ class Monitor[F[_]: Sync, E <: Event] {
     reportError()
   }
 
-  protected def reportErrorAtEnd(initialEvent: Option[InitialEvent]): F[Unit] = {
+  protected def reportErrorAtEnd(initialEvent: Option[InitialEvent]): Unit = {
     println("\n*** ERROR AT END OF TRACE")
     initialEvent match {
       case None =>
@@ -541,7 +534,7 @@ class Monitor[F[_]: Sync, E <: Event] {
     reportError()
   }
 
-  protected def reportError(): F[Unit] = {
+  protected def reportError(): Unit = {
     errorCount += 1
     println(s"$monitorName error # $errorCount")
     if (DautOptions.PRINT_ERROR_BANNER) {
