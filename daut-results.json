@@ -1,58 +1,51 @@
 {
-  "DispatchCompletePast": {
-    "N/A": [
+  "DispatchComplete" : {
+    "cmd1" : [
       {
-        "$type": "daut.TransitionOkReport",
-        "monitor": "DispatchCompletePast",
-        "state": "Dispatched(1000,cmd1,1).hot",
-        "eventNr": 5,
-        "event": "Cancel(3000,cmd1,1)",
-        "instance": "N/A",
-        "trace": [
+        "type" : "TransitionErrorReport",
+        "msg" : {
+          "command" : "cmd1",
+          "nr" : 1,
+          "advice" : "find a good task"
+        },
+        "monitor" : "DispatchComplete",
+        "state" : "hot",
+        "eventNr" : 2,
+        "event" : "Dispatch(2000,cmd1,1)",
+        "instance" : "cmd1",
+        "trace" : [
           {
-            "state": "always",
-            "eventNr": 1,
-            "event": "Dispatch(1000,cmd1,1)"
+            "state" : "always",
+            "eventNr" : 1,
+            "event" : "Dispatch(1000,cmd1,1)"
           },
           {
-            "state": "Dispatched(1000,cmd1,1).hot",
-            "eventNr": 5,
-            "event": "Cancel(3000,cmd1,1)"
+            "state" : "hot",
+            "eventNr" : 2,
+            "event" : "Dispatch(2000,cmd1,1)"
           }
-        ],
-        "msg": []
+        ]
       },
       {
-        "$type": "daut.TransitionReport",
-        "monitor": "DispatchCompletePast",
-        "state": "Dispatched(1000,cmd1,1).hot",
-        "eventNr": 5,
-        "event": "Cancel(3000,cmd1,1)",
-        "instance": "N/A"
-      },
-      {
-        "$type": "daut.TransitionErrorReport",
-        "monitor": "DispatchCompletePast",
-        "state": "always",
-        "eventNr": 6,
-        "event": "Log(cmd1(1) cancelled)",
-        "instance": "N/A",
-        "trace": [
+        "type" : "TransitionOkReport",
+        "msg" : "cmd1 1 cancelled",
+        "monitor" : "DispatchComplete",
+        "state" : "hot",
+        "eventNr" : 3,
+        "event" : "Cancel(3000,cmd1,1)",
+        "instance" : "cmd1",
+        "trace" : [
           {
-            "state": "always",
-            "eventNr": 6,
-            "event": "Log(cmd1(1) cancelled)"
+            "state" : "always",
+            "eventNr" : 2,
+            "event" : "Dispatch(2000,cmd1,1)"
+          },
+          {
+            "state" : "hot",
+            "eventNr" : 3,
+            "event" : "Cancel(3000,cmd1,1)"
           }
-        ],
-        "msg": []
-      },
-      {
-        "$type": "daut.TransitionReport",
-        "monitor": "DispatchCompletePast",
-        "state": "Dispatched(2000,cmd2,2).hot",
-        "eventNr": 7,
-        "event": "Complete(4000,cmd2,2)",
-        "instance": "N/A"
+        ]
       }
     ]
   }
