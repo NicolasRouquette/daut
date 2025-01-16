@@ -6,6 +6,7 @@ find_package(ament_cmake REQUIRED)
 add_custom_target(
   sbt_publish_local ALL
   COMMAND 
+    mkdir -p ${CMAKE_INSTALL_PREFIX}/../.coursier/cache &&
     /usr/bin/cs setup 
       --cache ${CMAKE_INSTALL_PREFIX}/../.coursier/cache 
       --install-dir=${CMAKE_INSTALL_PREFIX}/../bin 
