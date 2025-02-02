@@ -4,6 +4,16 @@ Version 2.1
 
 Daut is programmed in [Scala](https://www.scala-lang.org).
 
+## Scala Native
+
+TODO: Add the following to the container:
+
+(see: https://scala-native.org/en/stable/user/setup.html)
+
+```shell
+sudo apt install clang libstdc++-12-dev  libgc-dev llvm clang
+```
+
 ## Monitoring Data Streams with Data Automata
 
 Daut (Data automata) is an internal Scala DSL for writing event stream monitors. It

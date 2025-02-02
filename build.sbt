@@ -6,6 +6,20 @@ version := "0.2"
 
 scalaVersion := "3.5.1"
 
+enablePlugins(ScalaNativePlugin)
+
+// import to add Scala Native options
+import scala.scalanative.build._
+
+// defaults set with common options shown
+nativeConfig ~= { c =>
+  c
+    .withLTO(LTO.none) // https://scala-native.org/en/stable/user/sbt.html#link-time-optimization-lto
+    .withMode(Mode.debug) // https://scala-native.org/en/stable/user/sbt.html#compilation-modes
+    .withGC(GC.immix) // https://scala-native.org/en/stable/user/sbt.html#garbage-collectors
+    .withBuildTarget(BuildTarget.libraryDynamic) // https://scala-native.org/en/stable/user/sbt.html#build-target
+}
+
 // libraryDependencies += "com.github.tototoshi" %% "scala-csv" % "1.3.6"
 libraryDependencies += "de.siegmar" %"fastcsv" %"1.0.1"
 
